@@ -1069,6 +1069,24 @@ bool CWallet::MarkReplaced(const uint256& originalHash, const uint256& newHash)
     return success;
 }
 
+void CWallet::MarkMalleationsReplaced(WalletBatch& batch)
+{
+    AssertLockHeld(cs_wallet);
+    // Oldest first, so the result does not depend on the order of mapWallet
+    for (const auto& [order_pos, wtx] : wtxOrdered) {
+        const auto replaced_by = wtx->mapValue.find("replaced_by_txid");
+        if (replaced_by == wtx->mapValue.end()) continue;
+        for (CWalletTx* variant : GetMalleatedVariants(*wtx)) {
+            // Never overwrite: a variant's own replaced_by_txid is its own record
+            if (variant == wtx || variant->mapValue.count("replaced_by_txid")) continue;
+            variant->mapValue["replaced_by_txid"] = replaced_by->second;
+            if (!batch.WriteTx(*variant)) {
+                WalletLogPrintf("%s: Updating variant tx %s failed\n", __func__, variant->GetHash().ToString());
+            }
+        }
+    }
+}
+
 void CWallet::SetSpentKeyState(WalletBatch& batch, const uint256& hash, unsigned int n, bool used, std::set<CTxDestination>& tx_destinations)
 {
     AssertLockHeld(cs_wallet);

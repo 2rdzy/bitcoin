@@ -880,6 +880,13 @@ public:
     /** Mark a transaction as replaced by another transaction. */
     bool MarkReplaced(const uint256& originalHash, const uint256& newHash);
 
+    /**
+     * Copy a missing replaced_by_txid to the malleated variants of each replaced
+     * transaction. Older versions stored it only on the replaced transaction and
+     * copied it to the variants in memory on every load.
+     */
+    void MarkMalleationsReplaced(WalletBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
     static std::shared_ptr<CWallet> Create(WalletContext& context, const std::string& name, std::unique_ptr<WalletDatabase> database, uint64_t wallet_creation_flags, bilingual_str& error, std::vector<bilingual_str>& warnings);
 
